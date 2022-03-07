@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -5,15 +6,18 @@
 
 int main()
 {
-    const size_t cmd_buf_size = 24;
+    struct Message msg_startup = {
+        CMD_STARTUP_SONAR,
+        "",
+        MIN_BUF_SIZE
+    };
+    int ret = start_tcp_client(
+        "192.168.13.132",
+        TCP_PORT,
+        msg_startup
+    );
 
-    int ret = start_tcp_client("192.168.13.132", TCP_PORT, cmd_buf_size);
-    if (Sonar_OK == ret) {
-        printf("OK\n");
-    } else {
-        printf("Error: {%d}\n", ret);
-		return ret;
-    }
+    log(INFO, "Exit: {%d}\n", ret);
 
-    return 0;
+    return ret;
 }

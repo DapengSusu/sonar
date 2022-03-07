@@ -8,13 +8,70 @@
 #include "../../frame/include/tcp.h"
 #include "../../frame/include/sonar.h"
 
+// 解析并执行指令
+// TODO
+int parse_execute(int cmd)
+{
+    int ret = SONAR_OK;
+
+    switch (cmd) {
+    case CMD_SET_SYNC_MODE:
+        break;
+    case CMD_SET_DISTANCE_RANGE:
+        break;
+    case CMD_STARTUP_SONAR: {
+        // 启动声纳系统
+        // ...
+        // ret = startup_sonar();
+        log(INFO, "Start up!\n");
+        break;
+    }
+    // ...
+    default:
+        return SONAR_ERROR_CMD_NONEXIST;
+        break; 
+    }
+    return ret;
+}
+
+// 生成执行结果消息
+// TODO
+int generate_msg(char *buf, size_t size, int code)
+{
+    if (NULL == buf) {
+        return SONAR_ERROR_NULL_POINTER;
+    }
+    if (size < 6) {
+        // 查询指令 6 字节
+        // 其余指令返回 3 字节状态码
+        // 执行成功返回 0x4F 0x4B 0x0a（三字节即ASCII的“OK\n”）
+        // 执行失败返回 0x45 0x52 0x52（三字节即ASCII的“ERR”）
+        return SONAR_ERROR_OVERFLOW;
+    }
+    switch (code) {
+    case SONAR_OK: {
+        char res_ok[3] = { 0x4F, 0x4B, 0x0A };
+        memcpy(buf, res_ok, 3);
+        break;
+    }
+    // TODO
+    // ...
+    default: {
+        char res_err[3] = { 0x45, 0x52, 0x52 };
+        memcpy(buf, res_err, 3);
+        break;
+    }
+    }
+    return SONAR_OK;
+}
+
 int start_tcp_server(
-    const char *ip_addr,
-    u_int16_t port,
-    int max_connection,
-    const size_t cmd_buf_size
+    const char *ip_addr,        // IP 地址: 必须是合法可解析的IPv4地址
+    const u_int16_t port,       // 端口: 避免冲突
+    int max_connection,         // 最大支持连接数
+    const size_t buf_size       // 命令 buffer size
 ) {
-	char cmd_buf[cmd_buf_size];
+	char cmd_buf[buf_size];
     // 创建监听套接字
 	int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (-1 == socket_fd) {
@@ -45,7 +102,7 @@ int start_tcp_server(
 		perror("listen failed");
 		return TCP_ERROR_LISTEN;
 	}
-	printf("Waiting for the connection...\n");
+    log(INFO, "Waiting for the connection...\n");
 
     while (TRUE) {
         // 获取连接请求并建立连接
@@ -54,51 +111,63 @@ int start_tcp_server(
             perror("connect socket failed");
             return TCP_ERROR_ACCEPT;
         }
-        printf("Connected with Client: id[%d]\n", connect_fd);
+        log(INFO, "Connected with Client: fd[%d]\n", connect_fd);
 
-        memset(cmd_buf, 0, cmd_buf_size);
-        int ret = read(connect_fd, cmd_buf, cmd_buf_size);
+        memset(cmd_buf, 0, buf_size);
+        int ret = read(connect_fd, cmd_buf, buf_size);
         if (-1 == ret) {
             perror("read error");
-            return Sonar_ERROR_IO;
+            return SONAR_ERROR_IO;
         }
-        if (0 == ret) {
-            break;
-        }
+        // if (0 == ret) {
+        //     break;
+        // }
+
         // 命令解析
         // TODO
         unsigned long length = strlen(cmd_buf);
-        cmd_buf[length - 1] = '\0';
+        log(DEBUG, "buf: %s, len: %lu\n", cmd_buf, length);
+
         int cmd = atoi(cmd_buf);
         if (0 == cmd) {
-            return Sonar_ERROR_PARSE_INT;
+            return SONAR_ERROR_PARSE_INT;
         }
-        printf("received cmd: %s, op: %d\n", cmd_buf, cmd);
+        log(INFO, "received cmd: %s, op: %d\n", cmd_buf, cmd);
 
-        // 执行指令
-        // parse_cmd(int cmd)
+        // 执行
+        // TODO
+        int exec_result = parse_execute(cmd);
         // TODO
         // 执行结果回传
-        // 生成执行结果对应指令
-        int result = Sonar_OK;
-        // ...
-        // result = generate_cmd(cmd_buf, cmd_buf_size, result);
-        if (Sonar_OK == result) {
+        // 生成执行结果反馈消息
+        memset(cmd_buf, 0, buf_size);
+        int result = generate_msg(cmd_buf, buf_size, exec_result);
+        if (SONAR_OK == result) {
             write(connect_fd, cmd_buf, ret);
-            close_tcp_socket(connect_fd);
+            log(INFO, "The message returned.\n");
             // 控制服务端接收指令后是否退出
-            break;
+            // close_tcp_socket(connect_fd);
+            // break;
         }
-
         close_tcp_socket(connect_fd);
     }
     close_tcp_socket(socket_fd);
     
-    return Sonar_OK;
+    return SONAR_OK;
 }
 
-int start_tcp_client(const char *ip_addr, u_int16_t port, const size_t cmd_buf_size)
-{
+int start_tcp_client(
+    const char *ip_addr,        // IP 地址: 必须是合法可解析的IPv4地址
+    const u_int16_t port,       // 端口: 避免冲突
+    struct Message message      // 传输消息
+) {
+    // 参数检查
+    if (message.buf_size < MIN_BUF_SIZE
+        || message.buf_size > MAX_BUF_SIZE) {
+            log(ERROR, "Buffer size [%lu] is too small.\n", message.buf_size);
+            return SONAR_ERROR_OVERFLOW;
+    }
+
     // 创建监听套接字
 	int connect_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (-1 == connect_fd) {
@@ -120,25 +189,35 @@ int start_tcp_client(const char *ip_addr, u_int16_t port, const size_t cmd_buf_s
 		perror("connect failed");
 		return TCP_ERROR_CONNECT;
 	}
-    printf("Connect to Server\n");
+    log(INFO, "Connect to Server\n");
 
-    // 获取输入指令
-    char buf[cmd_buf_size];
-    memset(buf, 0, cmd_buf_size);
-    fgets(buf, cmd_buf_size, stdin);
+    // 处理输入指令
+    memset(message.msg_buf, 0, message.buf_size);
+    // fgets(buf, buf_size, stdin);
+    sprintf(message.msg_buf, "%X", message.cmd_request);
+    log(DEBUG, "buf: %s\n", message.msg_buf);
+
     // 发送指令
-    write(connect_fd, buf, strlen(buf));
-    memset(buf, 0, cmd_buf_size);
-    // 接收服务端回传结果
-    ret = read(connect_fd, buf, cmd_buf_size);
-    if (ret == 0) { // 表示连接断开
-        close(connect_fd);
+    ret = write(connect_fd, message.msg_buf, message.buf_size);
+    if (ret < 0) {
+        return SONAR_ERROR_IO;
     }
-    printf("get result: %s\n", buf);
-    // memset(buf, 0, cmd_buf_size);
-    close_tcp_client(connect_fd);
+    log(INFO, "Send cmd msg: %s\n", message.msg_buf);
 
-    return Sonar_OK;
+    memset(message.msg_buf, 0, message.buf_size);
+    // 接收服务端回传结果
+    ret = read(connect_fd, message.msg_buf, message.buf_size);
+    // if (ret == 0) { // 表示连接断开
+    //     close(connect_fd);
+    // }
+    log(INFO, "Get returned msg: %s\n", message.msg_buf);
+
+    // 确认回传信息无误
+    // TODO
+
+    close_tcp_socket(connect_fd);
+
+    return SONAR_OK;
 }
 
 int close_tcp_socket(int fd)
@@ -148,20 +227,7 @@ int close_tcp_socket(int fd)
         perror("close socket failed");
         return TCP_ERROR_CLOSE;
     }
-	printf("Closed: fd[%d]\n", fd);
+    log(INFO, "Closed: fd[%d]\n", fd);
 
-    return Sonar_OK;
-}
-
-int close_tcp_server(int socket_fd, int connect_fd)
-{
-    int ret = close_tcp_socket(socket_fd);
-    ret = close_tcp_socket(connect_fd);
-
-    return ret;
-}
-
-int close_tcp_client(int connect_fd)
-{
-    return close_tcp_socket(connect_fd);
+    return SONAR_OK;
 }
