@@ -41,7 +41,7 @@ int generate_msg(char *buf, size_t size, int code)
     if (NULL == buf) {
         return SONAR_ERROR_NULL_POINTER;
     }
-    if (size < 6) {
+    if (size < MIN_BUF_SIZE) {
         // 查询指令 6 字节
         // 其余指令返回 3 字节状态码
         // 执行成功返回 0x4F 0x4B 0x0a（三字节即ASCII的“OK\n”）
@@ -62,7 +62,7 @@ int generate_msg(char *buf, size_t size, int code)
         break;
     }
     }
-    return SONAR_OK;
+    return SONAR_OK; // TODO: 返回固定错误码不严谨
 }
 
 int start_tcp_server(
@@ -80,11 +80,14 @@ int start_tcp_server(
     }
 
     // 确定 IP 地址和端口
+    // TODO: 判断是动态获取 IP 还是使用固定 IP
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET; // IPv4
 	addr.sin_port = htons(port);
-	// addr.sin_addr.s_addr = htonl(inet_addr(ip_addr));
+    // 动态获取 IP
+	// addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    // 使用静态 IP
     inet_aton(ip_addr, &addr.sin_addr);
     // 绑定
 	int ret = bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr));
@@ -137,20 +140,26 @@ int start_tcp_server(
         // 执行
         // TODO
         int exec_result = parse_execute(cmd);
+        if (SONAR_OK != exec_result) {
+            // failed
+            // ...
+        }
         // TODO
         // 执行结果回传
         // 生成执行结果反馈消息
         memset(cmd_buf, 0, buf_size);
         int result = generate_msg(cmd_buf, buf_size, exec_result);
-        if (SONAR_OK == result) {
-            write(connect_fd, cmd_buf, ret);
-            log(INFO, "The message returned.\n");
-            // 控制服务端接收指令后是否退出
-            // close_tcp_socket(connect_fd);
-            // break;
-        }
+        // if (SONAR_OK == result) { // TODO: 不合理
+        write(connect_fd, cmd_buf, ret);
+        log(INFO, "The message returned.\n");
+        // 控制服务端接收指令后是否退出
+        // close_tcp_socket(connect_fd);
+        // break;
+        // }
+        // TODO: 服务端收到关机指令才能断开连接
         close_tcp_socket(connect_fd);
     }
+    // TODO: 服务端收到关机指令才能断开连接
     close_tcp_socket(socket_fd);
     
     return SONAR_OK;
@@ -164,7 +173,7 @@ int start_tcp_client(
     // 参数检查
     if (message.buf_size < MIN_BUF_SIZE
         || message.buf_size > MAX_BUF_SIZE) {
-            log(ERROR, "Buffer size [%lu] is too small.\n", message.buf_size);
+            log(ERROR, "Buffer size [%lu] is inappropriate.\n", message.buf_size);
             return SONAR_ERROR_OVERFLOW;
     }
 
@@ -180,7 +189,8 @@ int start_tcp_client(
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 	addr.sin_family = AF_INET; // IPv4
 	addr.sin_port = htons(port);
-	// addr.sin_addr.s_addr = htonl(inet_addr(ip_addr));
+	// 动态获取 IP
+	// addr.sin_addr.s_addr = htonl(INADDR_ANY);
     inet_aton(ip_addr, &addr.sin_addr);
 
     // 与服务端进行连接
@@ -193,7 +203,6 @@ int start_tcp_client(
 
     // 处理输入指令
     memset(message.msg_buf, 0, message.buf_size);
-    // fgets(buf, buf_size, stdin);
     sprintf(message.msg_buf, "%X", message.cmd_request);
     log(DEBUG, "buf: %s\n", message.msg_buf);
 
@@ -214,6 +223,8 @@ int start_tcp_client(
 
     // 确认回传信息无误
     // TODO
+    // 指令执行结果?
+    // ...
 
     close_tcp_socket(connect_fd);
 

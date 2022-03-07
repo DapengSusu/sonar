@@ -14,12 +14,14 @@ make
 ls build/bin
 ```
 
-1. one shell run:
+1. 配置 IP
+
+2. one shell run:
 ``` sh
 ./build/bin/sonar_server
 ```
 
-2. another shell run:
+3. another shell run:
 ``` sh
 ./build/bin/sonar_client
 ```

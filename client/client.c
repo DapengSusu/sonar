@@ -6,6 +6,10 @@
 
 int main()
 {
+    // TODO: 获取输入
+    // fgets(cmd_buf, cmd, stdin);
+    // 转换 cmd -> enum SonarSystemCmd
+
     struct Message msg_startup = {
         CMD_STARTUP_SONAR,
         "",
