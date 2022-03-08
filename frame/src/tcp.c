@@ -5,64 +5,45 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "../../frame/include/tcp.h"
-#include "../../frame/include/sonar.h"
+#include "cmd.h"
+#include "tcp.h"
+#include "sonar.h"
+#include "log.h"
+#include "error.h"
 
 // 解析并执行指令
 // TODO
-int parse_execute(int cmd)
+int parse_execute(char *cmd)
 {
     int ret = SONAR_OK;
 
-    switch (cmd) {
-    case CMD_SET_SYNC_MODE:
-        break;
-    case CMD_SET_DISTANCE_RANGE:
-        break;
-    case CMD_STARTUP_SONAR: {
-        // 启动声纳系统
-        // ...
-        // ret = startup_sonar();
-        log(INFO, "Start up!\n");
-        break;
-    }
-    // ...
-    default:
-        return SONAR_ERROR_CMD_NONEXIST;
-        break; 
-    }
     return ret;
 }
 
 // 生成执行结果消息
 // TODO
-int generate_msg(char *buf, size_t size, int code)
+void generate_returned_msg(char *buf, size_t size, int code)
 {
-    if (NULL == buf) {
-        return SONAR_ERROR_NULL_POINTER;
-    }
-    if (size < MIN_BUF_SIZE) {
-        // 查询指令 6 字节
-        // 其余指令返回 3 字节状态码
-        // 执行成功返回 0x4F 0x4B 0x0a（三字节即ASCII的“OK\n”）
-        // 执行失败返回 0x45 0x52 0x52（三字节即ASCII的“ERR”）
-        return SONAR_ERROR_OVERFLOW;
-    }
+    // 查询指令 6 字节
+    // 其余指令返回 3 字节状态码
+    // 执行成功返回 0x4F 0x4B 0x0a（三字节即ASCII的“OK\n”）
+    // 执行失败返回 0x45 0x52 0x52（三字节即ASCII的“ERR”）
+
+    char res_ok[3] = { 0x4F, 0x4B, 0x0A };
+    char res_err[3] = { 0x45, 0x52, 0x52 };
+
     switch (code) {
     case SONAR_OK: {
-        char res_ok[3] = { 0x4F, 0x4B, 0x0A };
         memcpy(buf, res_ok, 3);
         break;
     }
     // TODO
     // ...
     default: {
-        char res_err[3] = { 0x45, 0x52, 0x52 };
         memcpy(buf, res_err, 3);
         break;
     }
     }
-    return SONAR_OK; // TODO: 返回固定错误码不严谨
 }
 
 int start_tcp_server(
@@ -88,9 +69,12 @@ int start_tcp_server(
     if (NULL == ip_addr) {
         // 动态获取 IP
 	    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        log(DEBUG, "Dynamic IP\n");
     } else {
         // 使用静态 IP
         inet_aton(ip_addr, &addr.sin_addr);
+        log(DEBUG, "Static IP\n");
+
     }
 
     // 绑定
@@ -132,37 +116,35 @@ int start_tcp_server(
 
         // 命令解析
         // TODO
+        // Bool is_end = FALSE;
         unsigned long length = strlen(cmd_buf);
-        log(DEBUG, "buf: %s, len: %lu\n", cmd_buf, length);
-
-        int cmd = atoi(cmd_buf);
-        if (0 == cmd) {
-            return SONAR_ERROR_PARSE_INT;
-        }
-        log(INFO, "received cmd: %s, op: %d\n", cmd_buf, cmd);
+        log(INFO, "Received: %s, len: %lu\n", cmd_buf, length);
+        print_cmd(cmd_buf, length);
+        printf("\nEND\n");
 
         // 执行
         // TODO
-        int exec_result = parse_execute(cmd);
+        int exec_result = parse_execute(cmd_buf);
         if (SONAR_OK != exec_result) {
-            // failed
+            // failed ?
             // ...
         }
         // TODO
         // 执行结果回传
         // 生成执行结果反馈消息
         memset(cmd_buf, 0, buf_size);
-        int result = generate_msg(cmd_buf, buf_size, exec_result);
+        generate_returned_msg(cmd_buf, buf_size, exec_result);
         write(connect_fd, cmd_buf, ret);
         log(INFO, "The message returned.\n");
         // 控制服务端接收指令后是否退出
-        // close_tcp_socket(connect_fd);
-        // break;
+        close_tcp_socket(connect_fd);
+        break;
         // TODO: 服务端收到关机指令才能断开连接
         close_tcp_socket(connect_fd);
     }
     // TODO: 服务端收到关机指令才能断开连接
     close_tcp_socket(socket_fd);
+    log(DEBUG, "closed\n");
     
     return SONAR_OK;
 }
@@ -170,13 +152,15 @@ int start_tcp_server(
 int start_tcp_client(
     const char *ip_addr,        // IP 地址: 必须是合法可解析的IPv4地址
     const u_int16_t port,       // 端口: 避免冲突
-    struct Message message      // 传输消息
+    struct SonarCommand cmd     // 请求指令
 ) {
     // 参数检查
-    if (message.buf_size < MIN_BUF_SIZE
-        || message.buf_size > MAX_BUF_SIZE) {
-            log(ERROR, "Buffer size [%lu] is inappropriate.\n", message.buf_size);
-            return SONAR_ERROR_OVERFLOW;
+    if (NULL == cmd.cmd_buf) {
+        log(ERROR, "Buffer has no space\n");
+        return SONAR_ERROR_NULL_POINTER;
+    } else if (cmd.size <= 4) {
+        log(ERROR, "Invalid cmd [%s]\n", cmd.cmd_buf);
+        return SONAR_ERROR_INVALID_CMD;
     }
 
     // 创建监听套接字
@@ -207,25 +191,20 @@ int start_tcp_client(
 	}
     log(INFO, "Connect to Server\n");
 
-    // 处理输入指令
-    memset(message.msg_buf, 0, message.buf_size);
-    sprintf(message.msg_buf, "%X", message.cmd_request);
-    log(DEBUG, "buf: %s\n", message.msg_buf);
-
     // 发送指令
-    ret = write(connect_fd, message.msg_buf, message.buf_size);
+    ret = write(connect_fd, cmd.cmd_buf, cmd.size);
     if (ret < 0) {
         return SONAR_ERROR_IO;
     }
-    log(INFO, "Send cmd msg: %s\n", message.msg_buf);
+    log(INFO, "Send cmd msg: %s\n", cmd.cmd_buf);
 
-    memset(message.msg_buf, 0, message.buf_size);
+    memset(cmd.cmd_buf, 0, cmd.size);
     // 接收服务端回传结果
-    ret = read(connect_fd, message.msg_buf, message.buf_size);
+    ret = read(connect_fd, cmd.cmd_buf, cmd.size);
     // if (ret == 0) { // 表示连接断开
     //     close(connect_fd);
     // }
-    log(INFO, "Get returned msg: %s\n", message.msg_buf);
+    log(INFO, "Get returned msg: %s\n", cmd.cmd_buf);
 
     // 确认回传信息无误
     // TODO
@@ -239,12 +218,17 @@ int start_tcp_client(
 
 int close_tcp_socket(int fd)
 {
-    int ret = close(fd);
+    int ret = SONAR_OK;
+    if (-1 == fd) {
+        log(WARNING, "Invalid fd: [%d]\n", fd);
+        return ret;
+    }
+    ret = close(fd);
     if (-1 == ret) {
         perror("close socket failed");
         return TCP_ERROR_CLOSE;
     }
     log(INFO, "Closed: fd[%d]\n", fd);
 
-    return SONAR_OK;
+    return ret;
 }

@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.5)
 project(sonar_frame)
 
 # Add a library with the above sources
-add_library(${PROJECT_NAME} src/sonar.c src/tcp.c)
+add_library(${PROJECT_NAME} src/cmd.c src/sonar.c src/tcp.c)
 add_library(lib::sonar_frame ALIAS ${PROJECT_NAME})
 
 target_include_directories( ${PROJECT_NAME}

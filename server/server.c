@@ -1,10 +1,6 @@
-#include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/socket.h>
-#include "../frame/include/tcp.h"
+#include "tcp.h"
+#include "log.h"
 
 int main()
 {
@@ -20,7 +16,7 @@ int main()
 	int ret = start_tcp_server(
 		NULL,
 		TCP_PORT,
-		10,
+		3,
 		MIN_BUF_SIZE
 	);
 

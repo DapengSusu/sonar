@@ -1,8 +1,7 @@
-#include <math.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include "../frame/include/tcp.h"
+#include "tcp.h"
+#include "log.h"
+#include "cmd.h"
 
 int main()
 {
@@ -10,11 +9,9 @@ int main()
     // fgets(cmd_buf, cmd, stdin);
     // 转换 cmd -> enum SonarSystemCmd
 
-    struct Message msg_startup = {
-        CMD_STARTUP_SONAR,
-        "",
-        MIN_BUF_SIZE
-    };
+    struct SonarCommand cmd_startup = new_cmd(CMD_STARTUP_SONAR);
+
+    log(INFO, "new cmd: %s\n", cmd_startup.cmd_buf);
     // int ret = start_tcp_client(
     //     "192.168.13.132",
     //     TCP_PORT,
@@ -24,7 +21,7 @@ int main()
     int ret = start_tcp_client(
         NULL,
         TCP_PORT,
-        msg_startup
+        cmd_startup
     );
 
     log(INFO, "Exit: {%d}\n", ret);
