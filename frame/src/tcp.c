@@ -80,15 +80,19 @@ int start_tcp_server(
     }
 
     // 确定 IP 地址和端口
-    // TODO: 判断是动态获取 IP 还是使用固定 IP
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET; // IPv4
 	addr.sin_port = htons(port);
-    // 动态获取 IP
-	// addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    // 使用静态 IP
-    inet_aton(ip_addr, &addr.sin_addr);
+    // 判断是动态获取 IP 还是使用固定 IP
+    if (NULL == ip_addr) {
+        // 动态获取 IP
+	    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    } else {
+        // 使用静态 IP
+        inet_aton(ip_addr, &addr.sin_addr);
+    }
+
     // 绑定
 	int ret = bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr));
 	if (-1 == ret) {
@@ -149,13 +153,11 @@ int start_tcp_server(
         // 生成执行结果反馈消息
         memset(cmd_buf, 0, buf_size);
         int result = generate_msg(cmd_buf, buf_size, exec_result);
-        // if (SONAR_OK == result) { // TODO: 不合理
         write(connect_fd, cmd_buf, ret);
         log(INFO, "The message returned.\n");
         // 控制服务端接收指令后是否退出
         // close_tcp_socket(connect_fd);
         // break;
-        // }
         // TODO: 服务端收到关机指令才能断开连接
         close_tcp_socket(connect_fd);
     }
@@ -189,9 +191,13 @@ int start_tcp_client(
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 	addr.sin_family = AF_INET; // IPv4
 	addr.sin_port = htons(port);
-	// 动态获取 IP
-	// addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    inet_aton(ip_addr, &addr.sin_addr);
+    if (NULL == ip_addr) {
+        // 动态获取 IP
+	    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    } else {
+        // 使用静态 IP
+        inet_aton(ip_addr, &addr.sin_addr);
+    }
 
     // 与服务端进行连接
     int ret = connect(connect_fd, (struct sockaddr*)&addr, sizeof(addr));

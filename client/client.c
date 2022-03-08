@@ -15,8 +15,14 @@ int main()
         "",
         MIN_BUF_SIZE
     };
+    // int ret = start_tcp_client(
+    //     "192.168.13.132",
+    //     TCP_PORT,
+    //     msg_startup
+    // );
+
     int ret = start_tcp_client(
-        "192.168.13.132",
+        NULL,
         TCP_PORT,
         msg_startup
     );

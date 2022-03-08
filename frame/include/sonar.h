@@ -55,7 +55,7 @@ enum SonarSystemCmd {
     CMD_SET_SYNC_MODE = 0x01,            // 设置同步模式
     CMD_SET_DISTANCE_RANGE = 0x03,       // 设置距离量程
     // ...
-    CMD_STARTUP_SONAR = 0x06,            // 启动声纳系统
+    CMD_STARTUP_SONAR = 0x06,            // 启动声呐系统
     // ...
 };
 
