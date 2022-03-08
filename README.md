@@ -3,7 +3,8 @@
 ### build
 
 ``` sh
-mkdir build & cd build
+mkdir build
+cd build
 cmake ..
 make
 ```
@@ -14,7 +15,7 @@ make
 ls build/bin
 ```
 
-1. 配置 IP
+1. ~~配置 IP~~
 
 2. one shell run:
 ``` sh
