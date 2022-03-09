@@ -143,10 +143,12 @@ int start_tcp_server(
             write(connect_fd, cmd_buf, buf_size);
             log(INFO, "The message returned.\n");
             // 控制服务端接收指令后是否退出
-            close_tcp_socket(connect_fd);
-            break;
+            if (TRUE) {
+                close_tcp_socket(connect_fd);
+                break;
+            }
             // TODO: 服务端收到关机指令才能断开连接
-            // close_tcp_socket(connect_fd);
+            close_tcp_socket(connect_fd);
         }
     } while (FALSE);
     
