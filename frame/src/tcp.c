@@ -16,6 +16,9 @@
 int parse_execute(char *cmd)
 {
     int ret = SONAR_OK;
+    // check 指令有效性（指令头3字节）
+    // 根据指令号确定指令功能（指令号1字节）
+    // 确定指令内容（从第5字节开始）
 
     return ret;
 }
@@ -123,10 +126,10 @@ int start_tcp_server(
 
             // 命令解析
             // TODO
-            // Bool is_end = FALSE;
+            Bool is_end = TRUE;
             unsigned long length = strlen(cmd_buf);
             log(DEBUG, "Received: %s, len: %lu, ret: %d\n", cmd_buf, length, ret);
-            printf("Received cmd: ");
+            printf("Received cmd:[%d] ", ret);
             print_cmd(cmd_buf, length);
 
             // 执行
@@ -150,10 +153,15 @@ int start_tcp_server(
             ret = SONAR_OK;
             log(INFO, "The message returned.\n");
             // 控制服务端接收指令后是否退出
+#if DEBUG_MODE
             if (TRUE) {
+                // TODO
+                // debug 模式下可直接退出
+                // 正常情况服务端需要收到退出指令才能退出
                 close_tcp_socket(connect_fd);
                 break;
             }
+#endif
             // TODO: 服务端收到关机指令才能断开连接
             close_tcp_socket(connect_fd);
         }
@@ -175,7 +183,7 @@ int start_tcp_client(
         log(ERROR, "Buffer has no space\n");
         return SONAR_ERROR_NULL_POINTER;
     } else if (cmd.size <= 4) {
-        log(ERROR, "Invalid cmd [%s]\n", cmd.cmd_buf);
+        log(ERROR, "Invalid cmd %s\n", cmd.cmd_buf);
         return SONAR_ERROR_INVALID_CMD;
     }
 
@@ -219,7 +227,7 @@ int start_tcp_client(
             continue;
         }
         log(DEBUG, "Send cmd: %s, len: %lu, ret: %d\n", cmd.cmd_buf, cmd.size, ret);
-        printf("Send cmd: ");
+        printf("Send cmd:[%lu] ", cmd.size);
         print_cmd(cmd.cmd_buf, cmd.size);
 
         memset(cmd.cmd_buf, 0, cmd.size);
