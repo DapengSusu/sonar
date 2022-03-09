@@ -127,7 +127,6 @@ int start_tcp_server(
             unsigned long length = strlen(cmd_buf);
             log(DEBUG, "Received: %s, len: %lu, ret: %d\n", cmd_buf, length, ret);
             print_cmd(cmd_buf, length);
-            printf("\nEND\n");
 
             // 执行
             // TODO

@@ -19,7 +19,7 @@ enum CmdID {
     // 通用指令
     // ...
     CMD_STARTUP_SONAR,       // 启动声呐系统
-    CMD_SHUTDOWN_SONAR,      // 启动声呐系统
+    CMD_SHUTDOWN_SONAR,      // 关闭声呐系统
 
     // 内部指令
 #if USE_INSIDE_CMD

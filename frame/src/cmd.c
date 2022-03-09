@@ -36,6 +36,7 @@ struct SonarCommand new_cmd(const enum CmdID id)
             // log(DEBUG, "header cmd: [%s]\n", cmd.cmd_buf);
             // 添加指令号和指令内容
             sprintf(cmd.cmd_buf + 3, "%x%x", 0x06, 0x01);
+            print_cmd(cmd.cmd_buf, cmd.size);
             log(DEBUG, "generate cmd: [%s]\n", cmd.cmd_buf);
         }
         break;
@@ -78,6 +79,7 @@ void print_cmd(char* cmd_buf, size_t length)
         for (size_t i = 0; i != length; ++i) {
             printf("%#X ", cmd_buf[i]);
         }
+        printf("\n");
     }
 }
 
