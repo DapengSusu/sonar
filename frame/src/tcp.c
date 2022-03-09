@@ -111,7 +111,7 @@ int start_tcp_server(
             log(INFO, "Connected with Client: fd[%d]\n", connect_fd);
 
             memset(cmd_buf, 0, buf_size);
-            int ret = read(connect_fd, cmd_buf, buf_size);
+            ret = read(connect_fd, cmd_buf, buf_size);
             if (-1 == ret) {
                 perror("read error");
                 ret = SONAR_ERROR_IO;
@@ -126,6 +126,7 @@ int start_tcp_server(
             // Bool is_end = FALSE;
             unsigned long length = strlen(cmd_buf);
             log(DEBUG, "Received: %s, len: %lu, ret: %d\n", cmd_buf, length, ret);
+            printf("Received cmd: ");
             print_cmd(cmd_buf, length);
 
             // 执行
@@ -140,7 +141,13 @@ int start_tcp_server(
             // 生成执行结果反馈消息
             memset(cmd_buf, 0, buf_size);
             generate_returned_msg(cmd_buf, buf_size, exec_result);
-            write(connect_fd, cmd_buf, buf_size);
+            ret = write(connect_fd, cmd_buf, buf_size);
+            if (-1 == ret) {
+                perror("read error");
+                ret = SONAR_ERROR_IO;
+                break;
+            }
+            ret = SONAR_OK;
             log(INFO, "The message returned.\n");
             // 控制服务端接收指令后是否退出
             if (TRUE) {
@@ -206,19 +213,24 @@ int start_tcp_client(
 
         // 发送指令
         ret = write(connect_fd, cmd.cmd_buf, cmd.size);
-        if (ret < 0) {
+        if (-1 == ret) {
             perror("write cmd error");
             ret = SONAR_ERROR_IO;
             continue;
         }
-        log(INFO, "Send cmd msg: %s\n", cmd.cmd_buf);
+        log(DEBUG, "Send cmd: %s, len: %lu, ret: %d\n", cmd.cmd_buf, cmd.size, ret);
+        printf("Send cmd: ");
+        print_cmd(cmd.cmd_buf, cmd.size);
 
         memset(cmd.cmd_buf, 0, cmd.size);
         // 接收服务端回传结果
         ret = read(connect_fd, cmd.cmd_buf, cmd.size);
-        // if (ret == 0) { // 表示连接断开
-        //     close(connect_fd);
-        // }
+        if (-1 == ret) {
+            perror("read returned message fail");
+            ret = SONAR_ERROR_IO;
+            continue;
+        }
+        ret = SONAR_OK;
         log(INFO, "Get returned msg: %s\n", cmd.cmd_buf);
 
         // 确认回传信息无误

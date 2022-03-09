@@ -12,7 +12,7 @@ enum LogLevel {
 
 // 控制 log 输出等级
 // 默认 INFO
-static int log_level = LOG_DEBUG;
+static int log_level = LOG_INFO;
  
 #define log(level, fmt, ...) \
 do { \

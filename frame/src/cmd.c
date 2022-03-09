@@ -27,17 +27,18 @@ struct SonarCommand new_cmd(const enum CmdID id)
         // 指令号 0x06
         // 指令内容 1字节
         // 0x01 - 启动声呐
-        cmd.cmd_buf = (char *) malloc(6 * sizeof(char));
         cmd.size = 5;
+        cmd.cmd_buf = (char *) malloc(cmd.size * sizeof(char));
+
         if (NULL != cmd.cmd_buf) {
             memset(cmd.cmd_buf, 0, cmd.size);
             // 添加指令头
             memcpy(cmd.cmd_buf, g_cmd_header, 3);
-            // log(DEBUG, "header cmd: [%s]\n", cmd.cmd_buf);
             // 添加指令号和指令内容
-            sprintf(cmd.cmd_buf + 3, "%x%x", 0x06, 0x01);
-            print_cmd(cmd.cmd_buf, cmd.size);
-            log(DEBUG, "generate cmd: [%s]\n", cmd.cmd_buf);
+            char buf[] = { 0x06, 0x01 };
+            memcpy(cmd.cmd_buf + 3, buf, sizeof(buf));
+            // print_cmd(cmd.cmd_buf, cmd.size);
+            log(DEBUG, "generate cmd: %s\n", cmd.cmd_buf);
         }
         break;
     }
@@ -46,15 +47,18 @@ struct SonarCommand new_cmd(const enum CmdID id)
         // 指令号 0x06
         // 指令内容 1字节
         // 0x00 - 关闭声呐
-        cmd.cmd_buf = (char *) malloc(5 * sizeof(char));
         cmd.size = 5;
+        cmd.cmd_buf = (char *) malloc(cmd.size * sizeof(char));
+
         if (NULL != cmd.cmd_buf) {
             memset(cmd.cmd_buf, 0, cmd.size);
             // 添加指令头
             memcpy(cmd.cmd_buf, g_cmd_header, 3);
             // 添加指令号和指令内容
-            sprintf(cmd.cmd_buf, "%X%X", 0x06, 0x00);
-            log(DEBUG, "generate cmd: [%s\n]", cmd.cmd_buf);
+            char buf[] = { 0x06, 0x00 };
+            memcpy(cmd.cmd_buf + 3, buf, sizeof(buf));
+            // print_cmd(cmd.cmd_buf, cmd.size);
+            log(DEBUG, "generate cmd: %s\n", cmd.cmd_buf);
         }
         break;
     }
