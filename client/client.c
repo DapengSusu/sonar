@@ -24,6 +24,8 @@ int main()
         cmd_startup
     );
 
+    cmd_destroy(&cmd_startup);
+
     log(INFO, "Exit: {%d}\n", ret);
 
     return ret;

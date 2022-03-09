@@ -2,6 +2,7 @@
 #include <string.h>
 #include "cmd.h"
 #include "log.h"
+#include "sonar.h"
 
 // 指令头
 // 固定3字节: 0x43, 0x4D, 0x44
@@ -63,6 +64,13 @@ struct SonarCommand new_cmd(const enum CmdID id)
     return cmd;
 }
 
+// 指令有效性检验
+// TODO
+Bool cmd_check(const struct SonarCommand *cmd)
+{
+    return FALSE;
+}
+
 // 显示指令
 void print_cmd(char* cmd_buf, size_t length)
 {
@@ -77,7 +85,7 @@ void print_cmd(char* cmd_buf, size_t length)
 void cmd_destroy(struct SonarCommand *cmd)
 {
     if (NULL != cmd->cmd_buf) {
-        log(DEBUG, "cmd [%s] start to destroy\n", cmd->cmd_buf);
+        log(DEBUG, "destroyed space size: [%lu]\n", cmd->size);
 
         free(cmd->cmd_buf);
         cmd->cmd_buf = NULL;
