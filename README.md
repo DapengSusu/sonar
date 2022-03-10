@@ -19,10 +19,10 @@ ls build/bin
 
 2. one shell run:
 ``` sh
-./build/bin/sonar_server
+./build/bin/sonar_system
 ```
 
 3. another shell run:
 ``` sh
-./build/bin/sonar_client
+./build/bin/pc
 ```
