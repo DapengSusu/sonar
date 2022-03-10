@@ -219,32 +219,42 @@ int start_tcp_client(
         }
         log(INFO, "Connect to Server\n");
 
-        // 发送指令
-        ret = write(connect_fd, cmd.cmd_buf, cmd.size);
-        if (-1 == ret) {
-            perror("write cmd error");
-            ret = SONAR_ERROR_IO;
-            continue;
-        }
-        log(DEBUG, "Send cmd: %s, len: %lu, ret: %d\n", cmd.cmd_buf, cmd.size, ret);
-        printf("Send cmd:[%lu] ", cmd.size);
-        print_cmd(cmd.cmd_buf, cmd.size);
+        Bool is_end = TRUE;
+        while (TRUE) {
+            // 发送指令
+            ret = write(connect_fd, cmd.cmd_buf, cmd.size);
+            if (-1 == ret) {
+                perror("write cmd error");
+                ret = SONAR_ERROR_IO;
+                break;
+            }
+            log(DEBUG, "Send cmd: %s, len: %lu, ret: %d\n", cmd.cmd_buf, cmd.size, ret);
+            printf("Send cmd:[%lu] ", cmd.size);
+            print_cmd(cmd.cmd_buf, cmd.size);
 
-        memset(cmd.cmd_buf, 0, cmd.size);
-        // 接收服务端回传结果
-        ret = read(connect_fd, cmd.cmd_buf, cmd.size);
-        if (-1 == ret) {
-            perror("read returned message fail");
-            ret = SONAR_ERROR_IO;
-            continue;
-        }
-        ret = SONAR_OK;
-        log(INFO, "Get returned msg: %s\n", cmd.cmd_buf);
+            memset(cmd.cmd_buf, 0, cmd.size);
+            // 接收服务端回传结果
+            ret = read(connect_fd, cmd.cmd_buf, cmd.size);
+            if (-1 == ret) {
+                perror("read returned message fail");
+                ret = SONAR_ERROR_IO;
+                break;
+            }
+            ret = SONAR_OK;
+            log(INFO, "Get returned msg: %s\n", cmd.cmd_buf);
 
-        // 确认回传信息无误
-        // TODO
-        // 指令执行结果?
-        // ...
+            // 确认回传信息无误
+            // TODO
+            // 指令执行结果?
+            // ...
+
+            // 结束连接
+#ifdef DEBUG_MODE
+            if (TRUE) {
+                break;
+            }
+#endif
+        }
     } while (FALSE);
 
     close_tcp_socket(connect_fd);
