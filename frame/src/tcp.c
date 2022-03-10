@@ -59,7 +59,7 @@ int start_tcp_server(
     int ret = SONAR_OK;
 
     // 创建监听套接字
-    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    int socket_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (-1 == socket_fd) {
         perror("create socket failed");
         return TCP_ERROR_SOCKET;
@@ -190,7 +190,7 @@ int start_tcp_client(
     int ret = SONAR_OK;
 
     // 创建监听套接字
-	int connect_fd = socket(AF_INET, SOCK_STREAM, 0);
+	int connect_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (-1 == connect_fd) {
         perror("create socket failed");
         return TCP_ERROR_SOCKET;
